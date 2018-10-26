@@ -43,7 +43,7 @@ public class RowCoder extends CustomCoder<Row> {
   static final ImmutableMap<TypeName, Coder> CODER_MAP =
       ImmutableMap.<TypeName, Coder>builder()
           .put(TypeName.BYTE, ByteCoder.of())
-          .put(TypeName.BYTES, ByteArrayCoder.of())
+          .put(TypeName.BYTES, StructuralByteArrayCoder.of())
           .put(TypeName.INT16, BigEndianShortCoder.of())
           .put(TypeName.INT32, VarIntCoder.of())
           .put(TypeName.INT64, VarLongCoder.of())

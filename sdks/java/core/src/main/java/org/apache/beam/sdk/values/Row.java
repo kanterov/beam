@@ -36,6 +36,7 @@ import java.util.Objects;
 import java.util.stream.Collector;
 import javax.annotation.Nullable;
 import org.apache.beam.sdk.annotations.Experimental;
+import org.apache.beam.sdk.coders.StructuralByteArray;
 import org.apache.beam.sdk.schemas.FieldValueGetterFactory;
 import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.schemas.Schema.FieldType;
@@ -220,7 +221,13 @@ public abstract class Row implements Serializable {
    */
   @Nullable
   public byte[] getBytes(int idx) {
-    return getValue(idx);
+    StructuralByteArray value = getValue(idx);
+
+    if (value == null) {
+      return null;
+    } else {
+      return value.getValue();
+    }
   }
 
   /**
@@ -338,7 +345,7 @@ public abstract class Row implements Serializable {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -352,7 +359,7 @@ public abstract class Row implements Serializable {
     }
 
     for (int i = 0; i < getFieldCount(); i++) {
-      if (!Equals.deepEquals(getValue(i), other.getValue(i), getSchema().getField(i).getType())) {
+      if (!Objects.equals(getValue(i), other.getValue(i))) {
         return false;
       }
     }
@@ -364,108 +371,10 @@ public abstract class Row implements Serializable {
   public int hashCode() {
     int h = 1;
     for (int i = 0; i < getFieldCount(); i++) {
-      h = 31 * h + Equals.deepHashCode(getValue(i), getSchema().getField(i).getType());
+      h = 31 * h + Objects.hashCode(getValue(i));
     }
 
-    return h;
-  }
-
-  static class Equals {
-    static boolean deepEquals(Object a, Object b, Schema.FieldType fieldType) {
-      if (fieldType.getTypeName() == Schema.TypeName.BYTES) {
-        return Arrays.equals((byte[]) a, (byte[]) b);
-      } else if (fieldType.getTypeName() == Schema.TypeName.ARRAY) {
-        return deepEqualsForList(
-            (List<Object>) a, (List<Object>) b, fieldType.getCollectionElementType());
-      } else if (fieldType.getTypeName() == Schema.TypeName.MAP) {
-        return deepEqualsForMap(
-            (Map<Object, Object>) a, (Map<Object, Object>) b, fieldType.getMapValueType());
-      } else {
-        return Objects.equals(a, b);
-      }
-    }
-
-    static int deepHashCode(Object a, Schema.FieldType fieldType) {
-      if (fieldType.getTypeName() == Schema.TypeName.BYTES) {
-        return Arrays.hashCode((byte[]) a);
-      } else if (fieldType.getTypeName() == Schema.TypeName.ARRAY) {
-        return deepHashCodeForList((List<Object>) a, fieldType.getCollectionElementType());
-      } else if (fieldType.getTypeName() == Schema.TypeName.MAP) {
-        return deepHashCodeForMap(
-            (Map<Object, Object>) a, fieldType.getMapKeyType(), fieldType.getMapValueType());
-      } else {
-        return Objects.hashCode(a);
-      }
-    }
-
-    static <K, V> boolean deepEqualsForMap(Map<K, V> a, Map<K, V> b, Schema.FieldType valueType) {
-      if (a == b) {
-        return true;
-      }
-
-      if (a.size() != b.size()) {
-        return false;
-      }
-
-      for (Map.Entry<K, V> e : a.entrySet()) {
-        K key = e.getKey();
-        V value = e.getValue();
-        V otherValue = b.get(key);
-
-        if (value == null) {
-          if (otherValue != null || !b.containsKey(key)) {
-            return false;
-          }
-        } else {
-          if (!deepEquals(value, otherValue, valueType)) {
-            return false;
-          }
-        }
-      }
-
-      return true;
-    }
-
-    static int deepHashCodeForMap(
-        Map<Object, Object> a, Schema.FieldType keyType, Schema.FieldType valueType) {
-      int h = 0;
-
-      for (Map.Entry<Object, Object> e : a.entrySet()) {
-        Object key = e.getKey();
-        Object value = e.getValue();
-
-        h += deepHashCode(key, keyType) ^ deepHashCode(value, valueType);
-      }
-
-      return h;
-    }
-
-    static boolean deepEqualsForList(List<Object> a, List<Object> b, Schema.FieldType elementType) {
-      if (a == b) {
-        return true;
-      }
-
-      if (a.size() != b.size()) {
-        return false;
-      }
-
-      for (int i = 0; i < a.size(); i++) {
-        if (!deepEquals(a.get(i), b.get(i), elementType)) {
-          return false;
-        }
-      }
-
-      return true;
-    }
-
-    static int deepHashCodeForList(List<Object> a, Schema.FieldType elementType) {
-      int h = 1;
-      for (int i = 0; i < a.size(); i++) {
-        h = 31 * h + deepHashCode(a.get(i), elementType);
-      }
-
-      return h;
-    }
+    return 31 * h + getSchema().hashCode();
   }
 
   @Override
@@ -630,9 +539,11 @@ public abstract class Row implements Serializable {
             break;
           case BYTES:
             if (value instanceof ByteBuffer) {
-              return ((ByteBuffer) value).array();
+              return new StructuralByteArray(((ByteBuffer) value).array());
             } else if (value instanceof byte[]) {
-              return (byte[]) value;
+              return new StructuralByteArray((byte[]) value);
+            } else if (value instanceof StructuralByteArray) {
+              return value;
             }
             break;
           case INT16:

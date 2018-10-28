@@ -46,26 +46,29 @@ public class RowWithDeepEquals extends RowWithStorage {
 
   public static boolean listDeepEquals(List<Object> a, List<Object> b,
                                       Schema.FieldType elementType) {
-    if (a == b)
+    if (a == b) {
       return true;
-
-    ListIterator<?> e1 = a.listIterator();
-    ListIterator<?> e2 = ((List<?>) b).listIterator();
-    while (e1.hasNext() && e2.hasNext()) {
-      Object o1 = e1.next();
-      Object o2 = e2.next();
-      if (!(o1==null ? o2==null : deepEquals(o1, o2, elementType)))
-        return false;
     }
-    return !(e1.hasNext() || e2.hasNext());
+
+    if (a.size() != b.size()) {
+      return false;
+    }
+
+    for (int i = 0; i < a.size(); i++) {
+      if (!deepEquals(a.get(i), b.get(i), elementType)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   public static boolean deepEquals(Object a, Object b, Schema.FieldType fieldType) {
-    if (fieldType.getTypeName() == Schema.TypeName.BYTES && a instanceof byte[] && b instanceof byte[]) {
+    if (fieldType.getTypeName() == Schema.TypeName.BYTES) {
       return Arrays.equals((byte[])a, (byte[])b);
-    } if (fieldType.getTypeName() == Schema.TypeName.ARRAY && a instanceof List && b instanceof List) {
+    } if (fieldType.getTypeName() == Schema.TypeName.ARRAY) {
       return listDeepEquals((List<Object>)a, (List<Object>)b, fieldType.getCollectionElementType());
-    } if (fieldType.getTypeName() == Schema.TypeName.MAP && a instanceof Map && b instanceof Map) {
+    } if (fieldType.getTypeName() == Schema.TypeName.MAP) {
       return mapDeepEquals((Map<Object, Object>)a, (Map<Object, Object>)b, fieldType.getMapValueType());
     } else {
       return Objects.equals(a, b);

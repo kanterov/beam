@@ -184,12 +184,12 @@ public class RowBenchmark {
     bh.consume(rowWithStorage0.equals(rowWithStorage1));
   }
 
-  //@Benchmark
+  @Benchmark
   public void rowWithDeepEquals(Blackhole bh) {
     bh.consume(withWithDeepEquals0.equals(rowWithDeepEquals1));
   }
 
-  @Benchmark
+  //@Benchmark
   public void compareArrayList1(Blackhole bh) {
     ArrayList<Object> a = new ArrayList<>();
     a.add(1);
@@ -205,7 +205,7 @@ public class RowBenchmark {
   }
 
 
-  @Benchmark
+  //@Benchmark
   public void compareArrayList2(Blackhole bh) {
     ArrayList<Object> a = new ArrayList<>();
     a.add(1);
@@ -218,6 +218,32 @@ public class RowBenchmark {
     b.add(true);
 
     bh.consume(Arrays.equals(a.toArray(), b.toArray()));
+  }
+
+  //@Benchmark
+  public void compareArrayList3(Blackhole bh) {
+    ArrayList<Object> a = new ArrayList<>();
+    a.add(1);
+    a.add(1.0);
+    a.add(true);
+
+    ArrayList<Object> b = new ArrayList<>();
+    b.add(1);
+    b.add(1.0);
+    b.add(true);
+
+    if (a.size() != b.size()) {
+      bh.consume(false);
+    } else {
+      for (int i = 0; i < a.size(); i++) {
+        if (!a.get(i).equals(b.get(i))) {
+          bh.consume(false);
+          return;
+        }
+      }
+
+      bh.consume(true);
+    }
   }
 
 }

@@ -20,7 +20,17 @@ public class RowWithStorageEquals extends RowWithStorage {
       return false;
     }
     Row other = (Row) o;
-    return Objects.equals(getSchema(), other.getSchema())
-           && Objects.equals(getValues(), other.getValues());
+
+    if (!Objects.equals(getSchema(), other.getSchema())) {
+      return false;
+    }
+
+    for (int i = 0; i < getFieldCount(); i++) {
+      if (!getValue(i).equals(other.getValue(i))) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

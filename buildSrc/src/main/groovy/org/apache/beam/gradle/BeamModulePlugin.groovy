@@ -587,7 +587,7 @@ class BeamModulePlugin implements Plugin<Project> {
           '-Xlint:all',
           '-Werror',
           '-XepDisableWarningsInGeneratedCode',
-          '-XepExcludedPaths:(.*/)?(build/generated.*avro-java|build/generated)/.*',
+          '-XepExcludedPaths:(.*/)?(build/generated.*avro-java|build/generated|build/jmh-generated-sources)/.*',
           '-Xep:MutableConstantField:OFF' // Guava's immutable collections cannot appear on API surface.
         ]
         + (defaultLintSuppressions + configuration.disableLintWarnings).collect { "-Xlint:-${it}" })

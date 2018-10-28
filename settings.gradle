@@ -78,6 +78,8 @@ include "beam-sdks-java-container"
 project(":beam-sdks-java-container").dir = file("sdks/java/container")
 include "beam-sdks-java-core"
 project(":beam-sdks-java-core").dir = file("sdks/java/core")
+include "beam-sdks-java-jmh"
+project(":beam-sdks-java-jmh").dir = file("sdks/java/jmh")
 include "beam-sdks-java-extensions-euphoria"
 project(":beam-sdks-java-extensions-euphoria").dir = file("sdks/java/extensions/euphoria")
 include "beam-sdks-java-extensions-kryo"

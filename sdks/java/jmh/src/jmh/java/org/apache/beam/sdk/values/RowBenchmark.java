@@ -1,7 +1,5 @@
 package org.apache.beam.sdk.values;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
@@ -10,7 +8,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.beam.sdk.coders.Coder;
 import org.apache.beam.sdk.coders.RowCoderGenerator;
 import org.apache.beam.sdk.coders.StructuralByteArray;
+import org.apache.beam.sdk.schemas.JavaBeanSchema;
 import org.apache.beam.sdk.schemas.Schema;
+import org.apache.beam.sdk.schemas.SchemaRegistry;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -37,156 +37,122 @@ public class RowBenchmark {
       .addByteArrayField("f2")
       .build();
 
+  private static final Schema pojoCoder =
+      new JavaBeanSchema().schemaFor(TypeDescriptor.of(POJO.class));
+
   public static final Coder<Row> coder = RowCoderGenerator.generate(schema, UUID.randomUUID());
 
-  public static Row generateRowWithGetters(Row row) {
+  public static RowWithGetters generateRowWithGetters(POJO pojo) {
     try {
+      SchemaRegistry registry = SchemaRegistry.createDefault();
+      Row row = registry.getToRowFunction(POJO.class).apply(pojo);
 
-      ByteArrayOutputStream bos = new ByteArrayOutputStream();
-      coder.encode(row, bos);
-
-      return coder.decode(new ByteArrayInputStream(bos.toByteArray()));
+      return (RowWithGetters) row;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
   int something = 0;
-  Row rowWithStorage0;
-  Row rowWithStorage1;
+  RowWithStorage rowWithStorage0;
+  RowWithStorage rowWithStorage1;
+  RowWithStorage rowWithStorage2;
 
-  Row rowWithGetterEquals0;
-  Row rowWithGetterEquals1;
+  RowWithGetters rowWithGetterEquals0;
+  RowWithGetters rowWithGetterEquals1;
+  RowWithGetters rowWithGetterEquals2;
 
-  Row withWithDeepEquals0;
-  Row rowWithDeepEquals1;
+  RowWithDeepEquals rowWithDeepEquals0;
+  RowWithDeepEquals rowWithDeepEquals1;
+  RowWithDeepEquals rowWithDeepEquals2;
 
-  @Setup(Level.Iteration)
-  public void setup() {
-    int i = something++;
+  public Object[] generateRandomValues() {
+    int i = something;
     double j = (double) i;
     byte z = (byte) i;
 
-    rowWithStorage0 = new RowWithStorageEquals(schema, Arrays.asList(
-        i,
-        j,
-        new StructuralByteArray(new byte[]{ z, z, z, z })
-    ));
-
-    rowWithStorage1 = new RowWithStorageEquals(schema, Arrays.asList(
-        i,
-        j,
-        new StructuralByteArray(new byte[]{ z, z, z, z })
-    ));
-
-    i = something++;
-    j = (double) i;
-    z = (byte) i;
-
-    rowWithGetterEquals0 = generateRowWithGetters(new RowWithStorageEquals(schema, Arrays.asList(
-        i,
-        j,
-        new StructuralByteArray(new byte[]{ z, z, z, z })
-    )));
-
-    rowWithGetterEquals1 = generateRowWithGetters(new RowWithStorageEquals(schema, Arrays.asList(
-        i,
-        j,
-        new StructuralByteArray(new byte[]{ z, z, z, z })
-    )));
-
-    i = something++;
-    j = (double) i;
-    z = (byte) i;
-
-    withWithDeepEquals0 = new RowWithDeepEquals(schema, Arrays.asList(
-        i,
-        j,
-        new byte[]{ z, z, z, z }
-    ));
-
-    rowWithDeepEquals1 = new RowWithDeepEquals(schema, Arrays.asList(
-        i,
-        j,
-        new byte[]{ z, z, z, z }
-    ));
+    return new Object[]{ i, j, new byte[]{ z, z, z, z }};
   }
 
-  @TearDown(Level.Iteration)
-  public void tearDown(Blackhole bh) {
-    int i = something++;
+  public Object[] generateRandomStructuralValues() {
+    int i = something;
     double j = (double) i;
     byte z = (byte) i;
 
-    rowWithStorage0 = new RowWithStorageEquals(schema, Arrays.asList(
-        i,
-        j,
-        new StructuralByteArray(new byte[]{ z, z, z, z })
-    ));
+    return new Object[]{ i, j, new StructuralByteArray(new byte[]{ z, z, z, z }) };
+  }
 
-    rowWithStorage1 = new RowWithStorageEquals(schema, Arrays.asList(
-        i,
-        j,
-        new StructuralByteArray(new byte[]{ z, z, z, z })
-    ));
+  @Setup(Level.Trial)
+  public void setup() {
+    something++;
+    rowWithStorage0 = new RowWithStorageEquals(schema, Arrays.asList(generateRandomStructuralValues()));
+    rowWithStorage1 = new RowWithStorageEquals(schema, Arrays.asList(generateRandomStructuralValues()));
+    something++;
+    rowWithStorage2 = new RowWithStorageEquals(schema, Arrays.asList(generateRandomStructuralValues()));
 
-    i = something++;
-    j = (double) i;
-    z = (byte) i;
+    something++;
+    rowWithGetterEquals0 = generateRowWithGetters(POJO.valueOf(generateRandomValues()));
+    rowWithGetterEquals1 = generateRowWithGetters(POJO.valueOf(generateRandomValues()));
+    something++;
+    rowWithGetterEquals2 = generateRowWithGetters(POJO.valueOf(generateRandomValues()));
 
-    rowWithGetterEquals0 = generateRowWithGetters(new RowWithStorageEquals(schema, Arrays.asList(
-        i,
-        j,
-        new StructuralByteArray(new byte[]{ z, z, z, z })
-    )));
+    something++;
+    rowWithDeepEquals0 = new RowWithDeepEquals(schema, Arrays.asList(generateRandomValues()));
+    rowWithDeepEquals1 = new RowWithDeepEquals(schema, Arrays.asList(generateRandomValues()));
+    something++;
+    rowWithDeepEquals2 = new RowWithDeepEquals(schema, Arrays.asList(generateRandomValues()));
+  }
 
-    rowWithGetterEquals1 = generateRowWithGetters(new RowWithStorageEquals(schema, Arrays.asList(
-        i,
-        j,
-        new StructuralByteArray(new byte[]{ z, z, z, z })
-    )));
+  @TearDown(Level.Trial)
+  public void tearDown(Blackhole bh) {
+    something++;
+    rowWithStorage0 = new RowWithStorageEquals(schema, Arrays.asList(generateRandomStructuralValues()));
+    rowWithStorage1 = new RowWithStorageEquals(schema, Arrays.asList(generateRandomStructuralValues()));
+    something++;
+    rowWithStorage2 = new RowWithStorageEquals(schema, Arrays.asList(generateRandomStructuralValues()));
 
-    i = something++;
-    j = (double) i;
-    z = (byte) i;
+    something++;
+    rowWithGetterEquals0 = generateRowWithGetters(POJO.valueOf(generateRandomValues()));
+    rowWithGetterEquals1 = generateRowWithGetters(POJO.valueOf(generateRandomValues()));
+    something++;
+    rowWithGetterEquals2 = generateRowWithGetters(POJO.valueOf(generateRandomValues()));
 
-    withWithDeepEquals0 = new RowWithDeepEquals(schema, Arrays.asList(
-        i,
-        j,
-        new byte[]{ z, z, z, z }
-    ));
-
-    rowWithDeepEquals1 = new RowWithDeepEquals(schema, Arrays.asList(
-        i,
-        j,
-        new byte[]{ z, z, z, z }
-    ));
+    something++;
+    rowWithDeepEquals0 = new RowWithDeepEquals(schema, Arrays.asList(generateRandomValues()));
+    rowWithDeepEquals1 = new RowWithDeepEquals(schema, Arrays.asList(generateRandomValues()));
+    something++;
+    rowWithDeepEquals2 = new RowWithDeepEquals(schema, Arrays.asList(generateRandomValues()));
 
     bh.consume(rowWithGetterEquals0);
     bh.consume(rowWithGetterEquals1);
+    bh.consume(rowWithGetterEquals2);
 
     bh.consume(rowWithStorage0);
     bh.consume(rowWithStorage1);
+    bh.consume(rowWithStorage2);
 
-    bh.consume(withWithDeepEquals0);
+    bh.consume(rowWithDeepEquals0);
     bh.consume(rowWithDeepEquals1);
+    bh.consume(rowWithDeepEquals2);
     bh.consume(something);
   }
-
 
   //@Benchmark
   public void rowWithGetterEquals(Blackhole bh) {
     bh.consume(rowWithGetterEquals0.equals(rowWithGetterEquals1));
+    bh.consume(rowWithGetterEquals1.equals(rowWithGetterEquals2));
   }
 
   //@Benchmark
   public void rowWithStorageEquals(Blackhole bh) {
     bh.consume(rowWithStorage0.equals(rowWithStorage1));
+    bh.consume(rowWithStorage1.equals(rowWithStorage2));
   }
 
-  @Benchmark
+  //@Benchmark
   public void rowWithDeepEquals(Blackhole bh) {
-    bh.consume(withWithDeepEquals0.equals(rowWithDeepEquals1));
+    bh.consume(rowWithDeepEquals0.equals(rowWithDeepEquals1));
+    bh.consume(rowWithDeepEquals1.equals(rowWithDeepEquals2));
   }
 
   //@Benchmark
@@ -246,4 +212,29 @@ public class RowBenchmark {
     }
   }
 
+  //@Benchmark
+  public void testObjectEquals(Blackhole bh) {
+    Object[] a = new Object[] { 1, 1.0, new StructuralByteArray(new byte[] { 1, 2, 3, 4 }) };
+    Object[] b = new Object[] { 1, 1.0, new StructuralByteArray(new byte[] { 1, 2, 3, 4 }) };
+
+    bh.consume(Arrays.equals(a, b));
+  }
+
+  //@Benchmark
+  public void testPojoEquals(Blackhole bh) {
+    POJO a = new POJO(1, 1.0, new byte[] { 1, 2, 3, 4 });
+    POJO b = new POJO(1, 1.0, new byte[] { 1, 2, 3, 4 });
+
+    bh.consume(a.equals(b));
+  }
+
+  @Benchmark
+  public void testObjectAllocation(Blackhole bh) {
+    bh.consume(new Object[] { 1, 1.0, new StructuralByteArray(new byte[] { 1, 2, 3, 4 }) });
+  }
+
+  @Benchmark
+  public void testPojoAllocation(Blackhole bh) {
+    bh.consume(new POJO(1, 1.0, new byte[] { 1, 2, 3, 4 }));
+  }
 }
